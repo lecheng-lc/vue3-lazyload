@@ -1,90 +1,65 @@
+
 import assign from 'assign-deep'
-
 const inBrowser = typeof window !== 'undefined'
+import {loadImageAsyncOption} from './type'
 export const hasIntersectionObserver = checkIntersectionObserver()
-
-function checkIntersectionObserver () {
+function checkIntersectionObserver() {
   if (inBrowser &&
     'IntersectionObserver' in window &&
     'IntersectionObserverEntry' in window &&
     'intersectionRatio' in window.IntersectionObserverEntry.prototype) {
-  // Minimal polyfill for Edge 15's lack of `isIntersecting`
-  // See: https://github.com/w3c/IntersectionObserver/issues/211
+    // Minimal polyfill for Edge 15's lack of `isIntersecting`
+    // See: https://github.com/w3c/IntersectionObserver/issues/211
     if (!('isIntersecting' in window.IntersectionObserverEntry.prototype)) {
       Object.defineProperty(window.IntersectionObserverEntry.prototype,
         'isIntersecting', {
-          get: function () {
-            return this.intersectionRatio > 0
-          }
-        })
+        get: function () {
+          return this.intersectionRatio > 0
+        }
+      })
     }
     return true
   }
   return false
 }
+export enum modeType {
+  event = 'event',
+  observer = 'observer'
 
-export const modeType = {
-  event: 'event',
-  observer: 'observer'
 }
 
-// CustomEvent polyfill
-const CustomEvent = (function () {
-  if (!inBrowser) return
-  if (typeof window.CustomEvent === 'function') return window.CustomEvent
-  function CustomEvent (event, params) {
-    params = params || { bubbles: false, cancelable: false, detail: undefined }
-    var evt = document.createEvent('CustomEvent')
-    evt.initCustomEvent(event, params.bubbles, params.cancelable, params.detail)
-    return evt
-  }
-  CustomEvent.prototype = window.Event.prototype
-  return CustomEvent
-})()
 
-function remove (arr, item) {
+function remove(arr: Array<any>, item: any) {
   if (!arr.length) return
   const index = arr.indexOf(item)
   if (index > -1) return arr.splice(index, 1)
 }
 
-function some (arr, fn) {
-  let has = false
-  for (let i = 0, len = arr.length; i < len; i++) {
-    if (fn(arr[i])) {
-      has = true
-      break
-    }
-  }
-  return has
-}
 
-function getBestSelectionFromSrcset (el, scale) {
+function getBestSelectionFromSrcset(el: HTMLElement, scale: number) {
   if (el.tagName !== 'IMG' || !el.getAttribute('data-srcset')) return
-
-  let options = el.getAttribute('data-srcset')
-  const result = []
-  const container = el.parentNode
+  let options: string | string[] = el.getAttribute('data-srcset') ?? ''
+  const result:  Array<[tmpWidth: number, tmpSrc: string]> = []
+  const container = <HTMLElement>el.parentNode
   const containerWidth = container.offsetWidth * scale
-  console.log(container,containerWidth)
-  let spaceIndex
-  let tmpSrc
-  let tmpWidth
-
+  console.log(container, containerWidth)
+  let spaceIndex:number
+  let tmpSrc:string
+  let tmpWidth:number
   options = options.trim().split(',')
-
-  options.map(item => {
-    item = item.trim()
-    spaceIndex = item.lastIndexOf(' ')
-    if (spaceIndex === -1) {
-      tmpSrc = item
-      tmpWidth = 999998
-    } else {
-      tmpSrc = item.substr(0, spaceIndex)
-      tmpWidth = parseInt(item.substr(spaceIndex + 1, item.length - spaceIndex - 2), 10)
-    }
-    result.push([tmpWidth, tmpSrc])
-  })
+  if (Array.isArray(options))
+    options.map((item: string) => {
+      item = item.trim()
+      spaceIndex = item.lastIndexOf(' ')
+      if (spaceIndex === -1) {
+        tmpSrc = item
+        tmpWidth = 999998
+      } else {
+        tmpSrc = item.slice(0, spaceIndex)
+        tmpWidth = parseInt(item.slice(spaceIndex + 1, item.length - spaceIndex - 2), 10)
+      }
+      result.push([tmpWidth, tmpSrc])
+    })
 
   result.sort(function (a, b) {
     if (a[0] < b[0]) {
@@ -122,25 +97,12 @@ function getBestSelectionFromSrcset (el, scale) {
   return bestSelectedSrc
 }
 
-function find (arr, fn) {
-  let item
-  for (let i = 0, len = arr.length; i < len; i++) {
-    if (fn(arr[i])) {
-      item = arr[i]
-      break
-    }
-  }
-  return item
-}
-
 const getDPR = (scale = 1) => inBrowser ? (window.devicePixelRatio || scale) : scale
 
-function supportWebp () {
+function supportWebp() {
   if (!inBrowser) return false
-
-  let support = true
+  let support:boolean = true
   const d = document
-
   try {
     let el = d.createElement('object')
     el.type = 'image/webp'
@@ -156,19 +118,20 @@ function supportWebp () {
   return support
 }
 
-function throttle (action, delay) {
-  let timeout = null
+function throttle(action: Function, delay: number) {
+  let timeout: number = 0
   let lastRun = 0
   return function () {
     if (timeout) {
       return
     }
     let elapsed = Date.now() - lastRun
+    // @ts-ignore
     let context = this
     let args = arguments
     let runCallback = function () {
       lastRun = Date.now()
-      timeout = false
+      timeout = 0
       action.apply(context, args)
     }
     if (elapsed >= delay) {
@@ -179,8 +142,8 @@ function throttle (action, delay) {
   }
 }
 
-function testSupportsPassive () {
-  if (!inBrowser) return
+function testSupportsPassive(): boolean {
+  if (!inBrowser) return false
   let support = false
   try {
     let opts = Object.defineProperty({}, 'passive', {
@@ -188,15 +151,15 @@ function testSupportsPassive () {
         support = true
       }
     })
-    window.addEventListener('test', null, opts)
-  } catch (e) {}
+    window.addEventListener('test', () => { }, opts)
+  } catch (e) { }
   return support
 }
 
 const supportsPassive = testSupportsPassive()
 
 const _ = {
-  on (el, type, func, capture = false) {
+  on(el: Element, type: string, func: ()=>void, capture = false) {
     if (supportsPassive) {
       el.addEventListener(type, func, {
         capture: capture,
@@ -206,20 +169,18 @@ const _ = {
       el.addEventListener(type, func, capture)
     }
   },
-  off (el, type, func, capture = false) {
+  off(el: Element, type: string, func: () => void, capture = false) {
     el.removeEventListener(type, func, capture)
   }
 }
 
-const loadImageAsync = (item, resolve, reject) => {
+const loadImageAsync:loadImageAsyncOption = (item, resolve, reject) => {
   let image = new Image()
   if (!item || !item.src) {
     const err = new Error('image src is required')
     return reject(err)
   }
-
   image.src = item.src
-
   image.onload = function () {
     resolve({
       naturalHeight: image.naturalHeight,
@@ -233,19 +194,19 @@ const loadImageAsync = (item, resolve, reject) => {
   }
 }
 
-const style = (el, prop) => {
+const style = (el: HTMLElement, prop: string) => {
   return typeof getComputedStyle !== 'undefined'
     ? getComputedStyle(el, null).getPropertyValue(prop)
-    : el.style[prop]
+    : el.style[prop as keyof CSSStyleDeclaration]
 }
 
-const overflow = (el) => {
-  return style(el, 'overflow') + style(el, 'overflow-y') + style(el, 'overflow-x')
+const overflow = (el: HTMLElement) => {
+  return `${style(el, 'overflow')}${style(el, 'overflowY')}${style(el, 'overflowX')}`
 }
 
-const scrollParent = (el) => {
+const scrollParent = (el: HTMLElement) => {
   if (!inBrowser) return
-  if (!(el instanceof HTMLElement)) {
+  if (!(el instanceof Element)) {
     return window
   }
 
@@ -255,64 +216,40 @@ const scrollParent = (el) => {
     if (parent === document.body || parent === document.documentElement) {
       break
     }
-
     if (!parent.parentNode) {
       break
     }
-
     if (/(scroll|auto)/.test(overflow(parent))) {
       return parent
     }
-
-    parent = parent.parentNode
+    parent = <HTMLElement>parent.parentNode
   }
 
   return window
 }
 
-function isObject (obj) {
+function isObject(obj: any) {
   return obj !== null && typeof obj === 'object'
 }
 
-function ObjectKeys (obj) {
-  if (!(obj instanceof Object)) return []
-  if (Object.keys) {
-    return Object.keys(obj)
-  } else {
-    let keys = []
-    for (let key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        keys.push(key)
-      }
-    }
-    return keys
-  }
-}
 
-function ArrayFrom (arrLike) {
-  let len = arrLike.length
-  const list = []
-  for (let i = 0; i < len; i++) {
-    list.push(arrLike[i])
-  }
-  return list
-}
-
-function noop () {}
+function noop():void { }
 
 class ImageCache {
-  constructor ({ max }) {
+  options: { max: number }
+  _caches: string[]
+  constructor({ max }: any) {
     this.options = {
       max: max || 100
     }
     this._caches = []
   }
 
-  has (key) {
-    return this._caches.indexOf(key) > -1
+  has(key: string) {
+    return this._caches.includes(key)
   }
 
-  add (key) {
+  add(key: string) {
     if (this.has(key)) return
     this._caches.push(key)
     if (this._caches.length > this.options.max) {
@@ -320,7 +257,7 @@ class ImageCache {
     }
   }
 
-  free () {
+  free() {
     this._caches.shift()
   }
 }
@@ -328,13 +265,9 @@ class ImageCache {
 export {
   ImageCache,
   inBrowser,
-  CustomEvent,
   remove,
-  some,
-  find,
   assign,
   noop,
-  ArrayFrom,
   _,
   isObject,
   throttle,
@@ -342,6 +275,5 @@ export {
   getDPR,
   scrollParent,
   loadImageAsync,
-  getBestSelectionFromSrcset,
-  ObjectKeys
+  getBestSelectionFromSrcset
 }

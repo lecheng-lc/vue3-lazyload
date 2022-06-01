@@ -1,19 +1,44 @@
 import {
   loadImageAsync,
-  ObjectKeys,
-  noop
+  noop,
+  ImageCache
 } from './util'
 
-// el: {
-//     state,
-//     src,
-//     error,
-//     loading
-// }
 
-
+import { VueLazyloadOptions } from './type'
+import { Tlistener } from './type'
 export default class ReactiveListener {
-  constructor ({ el, src, error, loading, bindType, $parent, options, elRenderer, imageCache }) {
+  el: HTMLElement | null
+  src: string
+  error: string
+  loading: string
+  bindType: string
+  attempt: number
+  naturalHeight: number
+  naturalWidth: number
+  options: VueLazyloadOptions
+  rect: DOMRect
+  $parent: Element | null
+  elRenderer: (listener: Tlistener, state: string, cache: boolean) => void
+  _imageCache: ImageCache
+  performanceData: Record<string, any>
+  state: {
+    loading: boolean,
+    loaded: boolean,
+    error: boolean,
+    rendered: boolean,
+  }
+  constructor(
+    el: HTMLElement,
+    src: string,
+    error: string,
+    loading: string,
+    bindType: string,
+    $parent: Element,
+    options: VueLazyloadOptions,
+    elRenderer: (listener: Tlistener, state: string, cache: boolean) => void,
+    imageCache: ImageCache
+  ) {
     this.el = el // dom元素
     this.src = src // dom元素src
     this.error = error // dom元素错误的src
@@ -26,8 +51,7 @@ export default class ReactiveListener {
 
     this.options = options // lazyload的各种初始化选项
 
-    this.rect = null // 当前元素距离屏幕顶部的上下左右距离
-
+    this.rect = {} as DOMRect // 当前元素距离屏幕顶部的上下左右距离
     this.$parent = $parent // 当前元素父元素
     this.elRenderer = elRenderer // 元素渲染的方式
     this._imageCache = imageCache // 图像缓存数组
@@ -39,20 +63,20 @@ export default class ReactiveListener {
 
     this.filter() // 图片过滤函数执行
     this.initState() // 初始化函数执行状态
-    this.render('loading', false) // 开始执行渲染逻辑 
+    this.render('loading', false) // 开始执行渲染逻辑
   }
 
   /*
    * 将真实的图片路径绑定到元素的data-src属性上，并为监听对象添加error、loaded、rendered状态
    * @return
    */
-  initState () {
+  initState() {
+    if (!this.el) return
     if ('dataset' in this.el) {
       this.el.dataset.src = this.src
     } else {
-      this.el.setAttribute('data-src', this.src)
+      (this.el as HTMLElement).setAttribute('data-src', this.src)
     }
-
     this.state = {
       loading: false,
       error: false,
@@ -65,7 +89,7 @@ export default class ReactiveListener {
    * record performance
    * @return
    */
-  record (event) {
+  record(event: string) {
     this.performanceData[event] = Date.now()
   }
 
@@ -76,11 +100,11 @@ export default class ReactiveListener {
    * @param  {String} error image uri
    * @return
    */
-  update ({ src, loading, error }) {
+  update(option: { src: string, loading: string, error: string }) {
     const oldSrc = this.src
-    this.src = src
-    this.loading = loading
-    this.error = error
+    this.src = option.src
+    this.loading = option.loading
+    this.error = option.error
     this.filter()
     if (oldSrc !== this.src) {
       this.attempt = 0
@@ -92,25 +116,26 @@ export default class ReactiveListener {
    * 获得元素距离屏幕的距离
    * @return
    */
-  getRect () {
-    this.rect = this.el.getBoundingClientRect()
+  getRect() {
+    this.rect = this.el!.getBoundingClientRect()
   }
 
   /*
    *  检查元素是否在视图窗口中
    * @return {Boolean} el is in view
    */
-  checkInView () {
+  checkInView() {
+    if (!this.rect) return false
     this.getRect()
-    return (this.rect.top < window.innerHeight * this.options.preLoad && this.rect.bottom > this.options.preLoadTop) &&
-            (this.rect.left < window.innerWidth * this.options.preLoad && this.rect.right > 0)
+    return (this.rect.top < window.innerHeight * this.options.preLoad && this.rect.bottom > this.options.preLoadTop!) &&
+      (this.rect.left < window.innerWidth * this.options.preLoad && this.rect.right > 0)
   }
 
   /*
    * 执行过滤的函数
    */
-  filter () {
-    ObjectKeys(this.options.filter).map(key => {
+  filter() {
+    Object.keys(this.options.filter).map(key => {
       this.options.filter[key](this, this.options)
     })
   }
@@ -120,11 +145,11 @@ export default class ReactiveListener {
    * @params cb:Function
    * @return
    */
-  renderLoading (cb) {
+  renderLoading(cb: () => void) {
     this.state.loading = true
     loadImageAsync({
       src: this.loading
-    }, data => {
+    }, () => {
       this.render('loading', false) // 加载图像
       this.state.loading = false
       cb()
@@ -140,9 +165,9 @@ export default class ReactiveListener {
    * try load image and  render it
    * @return
    */
-  load (onFinish = noop) {
+  load(onFinish = noop) {
     // 如果尝试加载图片的次数大于设置的次数，那么抛出错误，图片不再加载,并执行回调
-    if ((this.attempt > this.options.attempt - 1) && this.state.error) {
+    if ((this.attempt > this.options.attempt! - 1) && this.state.error) {
       if (!this.options.silent) console.log(`VueLazyload log: ${this.src} tried too more than ${this.options.attempt} times`)
       onFinish()
       return
@@ -162,7 +187,7 @@ export default class ReactiveListener {
       this.record('loadStart')
       loadImageAsync({
         src: this.src
-      }, data => {
+      }, (data: any) => {
         this.naturalHeight = data.naturalHeight
         this.naturalWidth = data.naturalWidth
         this.state.loaded = true
@@ -172,7 +197,7 @@ export default class ReactiveListener {
         this.state.rendered = true
         this._imageCache.add(this.src)
         onFinish()
-      }, err => {
+      }, (err: any) => {
         !this.options.silent && console.error(err)
         this.state.error = true
         this.state.loaded = false
@@ -187,7 +212,7 @@ export default class ReactiveListener {
    * @param  {String} is form cache
    * @return
    */
-  render (state, cache) {
+  render(state: any, cache: boolean) {
     this.elRenderer(this, state, cache)
   }
 
@@ -195,7 +220,7 @@ export default class ReactiveListener {
    * output performance data
    * @return {Object} performance data
    */
-  performance () {
+  performance() {
     let state = 'loading'
     let time = 0
 
@@ -217,12 +242,12 @@ export default class ReactiveListener {
    * $destroy
    * @return
    */
-  $destroy () {
+  $destroy() {
     this.el = null
-    this.src = null
-    this.error = null
-    this.loading = null
-    this.bindType = null
+    this.src = ''
+    this.error = ''
+    this.loading = ''
+    this.bindType = ''
     this.attempt = 0
   }
 }
