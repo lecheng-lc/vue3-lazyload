@@ -1,13 +1,13 @@
 import { inBrowser } from './util'
 import { Lazy } from './lazy'
 import {
-  h,
   defineComponent,
-  computed,
   onMounted,
   onBeforeUnmount,
   getCurrentInstance,
   ref,
+  createVNode,
+  computed,
   reactive
 } from 'vue'
 export default (lazy: Lazy) => {
@@ -36,7 +36,8 @@ export default (lazy: Lazy) => {
       })
       const vm = computed(() => {
         return {
-          el:instance?.proxy?.$el,
+          el: instance?.proxy?.$el,
+          $el: instance?.proxy?.$el,
           rect,
           checkInView,
           load,
@@ -52,7 +53,7 @@ export default (lazy: Lazy) => {
         lazy.removeComponent(vm.value)
       })
       const getRect = () => {
-        rect = el.value.getBoundingClientRect()
+        rect = el.value!.getBoundingClientRect()
       }
       const checkInView = () => {
         getRect()
@@ -61,18 +62,13 @@ export default (lazy: Lazy) => {
       const load = () => {
         show.value = true
         state.loaded = true
-        ctx.emit('show', instance?.proxy)
+        ctx.emit('show', show.value)
       }
-      const destroy = () => {
-        // @TODO
-        return instance?.proxy
-      }
-    },
-    render() {
-      if (this.show === false) {
-        return h(this.tag)
-      }
-      return h(this.tag, null, this.$slots.default)
+      return () => createVNode(
+        props.tag,
+        null,
+        [show.value && ctx.slots.default?.()]
+      )
     }
   })
 }

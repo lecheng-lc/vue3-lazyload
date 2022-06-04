@@ -1,7 +1,9 @@
-export default function (lazy, options) {
+import { Lazy } from './lazy';
+import { VueLazyloadOptions } from '../types/index'
+export default function (lazy:Lazy, options:VueLazyloadOptions) {
   return class LazyDom {
-    el:HTMLElement
-    $el:HTMLElement
+    el:HTMLElement | null
+    $el:HTMLElement | null
     viewParams: {[x:string]:any}
     eleLoaded:boolean
     state: {
@@ -16,7 +18,7 @@ export default function (lazy, options) {
     rect: DOMRect
     destroy: boolean
     viewed: boolean
-    constructor(el, viewParams) {
+    constructor(el:HTMLElement, viewParams:{[x:string]:any}) {
       this.eleLoaded = false
       this.state = {
         inited: false,
@@ -27,8 +29,8 @@ export default function (lazy, options) {
       this.viewParams = viewParams
       this.viewed = false
       this.options = {
-        preLoad: options.preLoad,
-        preLoadTop: options.preLoadTop,
+        preLoad: options.preLoad || 1.3,
+        preLoadTop: options.preLoadTop || 0,
         domTypes:[]
       }
       this.destroy = false
@@ -42,7 +44,7 @@ export default function (lazy, options) {
       }
     }
     getRect() {
-      this.rect = this.$el.getBoundingClientRect()
+      this.rect = this.$el!.getBoundingClientRect()
     }
     update() { }
     checkInView() {
@@ -58,13 +60,14 @@ export default function (lazy, options) {
     }
     $destroy() {
       this.$el = null
+      this.el = null
     }
     triggerEleView() {
       if (!this.viewed && this.state.loaded) {
         const event = new CustomEvent('view', {
           detail: {}
         })
-        this.$el.dispatchEvent(event)
+        this.$el!.dispatchEvent(event)
         this.viewed = true
       }
     }

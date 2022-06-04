@@ -1,7 +1,7 @@
 
 import assign from 'assign-deep'
 const inBrowser = typeof window !== 'undefined'
-import {loadImageAsyncOption} from './type'
+import {loadImageAsyncOption} from '../types/index'
 export const hasIntersectionObserver = checkIntersectionObserver()
 function checkIntersectionObserver() {
   if (inBrowser &&
@@ -29,17 +29,16 @@ export enum modeType {
 }
 
 
-function remove(arr: Array<any>, item: any) {
+function remove(arr: Array<any>, item: any): any {
   if (!arr.length) return
   const index = arr.indexOf(item)
   if (index > -1) return arr.splice(index, 1)
 }
 
-
 function getBestSelectionFromSrcset(el: HTMLElement, scale: number) {
   if (el.tagName !== 'IMG' || !el.getAttribute('data-srcset')) return
   let options: string | string[] = el.getAttribute('data-srcset') ?? ''
-  const result:  Array<[tmpWidth: number, tmpSrc: string]> = []
+  const result:  Array<[ number, string]> = []
   const container = <HTMLElement>el.parentNode
   const containerWidth = container.offsetWidth * scale
   console.log(container, containerWidth)
@@ -119,7 +118,7 @@ function supportWebp() {
 }
 
 function throttle(action: Function, delay: number) {
-  let timeout: number = 0
+  let timeout: any = 0
   let lastRun = 0
   return function () {
     if (timeout) {

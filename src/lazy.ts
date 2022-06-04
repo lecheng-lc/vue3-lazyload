@@ -14,9 +14,9 @@ import {
   ImageCache
 } from './util'
 import LazyContainerMananger from './lazy-container'
-import { nextTick ,DirectiveBinding, VNode} from 'vue'
+import { nextTick ,DirectiveBinding} from 'vue'
 import ReactiveListener from './listener'
-import { Tlistener, VueLazyloadOptions, VueLazyloadListenEvent, VueReactiveListener } from './type'
+import { Tlistener, VueLazyloadOptions, VueLazyloadListenEvent, VueReactiveListener } from '../types/index'
 const DEFAULT_URL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
 const DEFAULT_EVENTS = ['scroll', 'wheel', 'mousewheel', 'resize', 'animationend', 'transitionend', 'touchmove']
 const DEFAULT_OBSERVER_OPTIONS = {
@@ -130,6 +130,7 @@ export class Lazy {
     if (inBrowser) {
       this._addListenerTarget(window)
       this._observer && this._observer.observe(vm.el)
+      console.log(vm.$el,'jjjj')
       if (vm.$el && vm.$el.parentNode) {
         this._addListenerTarget(vm.$el.parentNode)
       }
@@ -143,7 +144,7 @@ export class Lazy {
    * @param  {vnode} vnode vue directive vnode
    * @return
    */
-  add(el: HTMLElement, binding: DirectiveBinding, vnode: VNode ) {
+  add(el: HTMLElement, binding: DirectiveBinding ):Promise<void> | void {
     if (this.ListenerQueue.some(item => item.el === el)) {
       this.update(el, binding)
       return nextTick(this.lazyLoadHandler)
@@ -191,13 +192,13 @@ export class Lazy {
   * @param  {object} vue directive binding
   * @return
   */
-  update(el: HTMLElement, binding: DirectiveBinding, vnode?: VNode) {
+  update(el: HTMLElement, binding: DirectiveBinding) {
     let { src, loading, error } = this._valueFormatter(binding.value)
     src = getBestSelectionFromSrcset(el, this.options.scale!) || src
 
-    const exist = this.ListenerQueue.find((item: any) => item.el === el)
+    const exist = this.ListenerQueue.find(item => item.el === el)
     if (!exist) {
-      this.add(el, binding, <VNode>vnode)
+      this.add(el, binding)
     } else {
       exist.update({
         src,
@@ -354,7 +355,7 @@ export class Lazy {
 
     this.$emit = (event, context, inCache) => {
       if (!this.Event.listeners[event as ListenersType]) return
-      this.Event.listeners[event as ListenersType].forEach((func: any) => func(context, inCache))
+      this.Event.listeners[event as ListenersType].forEach((func: Function) => func(context, inCache))
     }
   }
 
@@ -364,7 +365,6 @@ export class Lazy {
    */
   _lazyLoadHandler() {
     const freeList: Tlistener[] = []
-    console.log(this.ListenerQueue)
     this.ListenerQueue.forEach((listener) => {
       if (!listener.el || !listener.el.parentNode) {
         freeList.push(listener)
@@ -374,7 +374,6 @@ export class Lazy {
       listener.load()
     })
     freeList.forEach(item => {
-      console.log(222)
       remove(this.ListenerQueue, item)
       item.$destroy()
     })
@@ -398,8 +397,8 @@ export class Lazy {
   * init IntersectionObserver
   * @return
   */
-  _observerHandler(entries: any) {
-    entries.forEach((entry: any) => {
+  _observerHandler(entries: Array<IntersectionObserverEntry>) {
+    entries.forEach((entry) => {
       if (entry.isIntersecting) {
         this.ListenerQueue.forEach(listener => {
           if (listener.el === entry.target) {
@@ -443,8 +442,8 @@ export class Lazy {
     // console.log(state) // 会执行两次loading,
     el.setAttribute('lazy', state)
     this.$emit(state, listener, cache)
-    this.options.adapter[state] && this.options.adapter[state](listener, this.options) // 监听图片各个元素的加载过程的回调方法
-    if (this.options.dispatchEvent) { // 自定义方法,当方法开始执行去执行
+    this.options.adapter[state] && this.options.adapter[state](listener, this.options)
+    if (this.options.dispatchEvent) {
       const event = new CustomEvent(state, {
         detail: listener
       })

@@ -70,7 +70,7 @@ class LazyContainer {
           error: ('dataset' in el ? el.dataset.error : el.getAttribute('data-error')) || this.options.error,
           loading: ('dataset' in el ? el.dataset.loading : el.getAttribute('data-loading')) || this.options.loading
         }
-      }), <VNode>this.vnode)
+      }))
     })
   }
 

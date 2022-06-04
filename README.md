@@ -6,14 +6,6 @@
 * cdn地址改动
 * 新增v-view指令和view方法
 * 新增viewNodeNames参数
-### CDN地址
-CDN: https://unpkg.com/vue-lazyload/vue-lazyload.js
-
-<script src="https://unpkg.com/vue-lazyload/vue-lazyload.js"></script>
-<script>
-  Vue.use(VueLazyload)
-  ...
-</script>
 ### 新增参数
 
 | key | description| default | options|

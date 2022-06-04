@@ -5,11 +5,10 @@ import {
 } from './util'
 import { Lazy } from './lazy'
 import {
-  h,
   defineComponent,
   onMounted,
   getCurrentInstance,
-  onBeforeMount,
+  createVNode,
   ref,
   watch,
   computed,
@@ -24,7 +23,7 @@ export default (lazyManager:Lazy) => {
         default: 'img'
       }
     },
-    setup(props) {
+    setup(props,ctx) {
       const el = ref<HTMLElement>()
       const renderSrc = ref<string>('')
       const options = reactive({
@@ -33,7 +32,7 @@ export default (lazyManager:Lazy) => {
         loading: '',
         attempt: lazyManager.options.attempt
       })
-      let rect = reactive<any>({})
+      let rect = reactive(<DOMRect>{})
       const state = reactive({
         loaded: false,
         error: false,
@@ -43,18 +42,16 @@ export default (lazyManager:Lazy) => {
       const init = () => {
         const { src, loading, error } = lazyManager._valueFormatter(props.src)
         options.src = src
-        options.error = error
-        options.loading = loading
+        options.error = error || ''
+        options.loading = loading || ''
         renderSrc.value = options.loading
       }
-      onBeforeMount(() => {
-        init()
-      })
+      init()
       onMounted(() => {
-        el.value = instance?.proxy.$el
+        el.value = instance?.proxy?.$el
       })
       const getRect = () => {
-        rect = el.value.getBoundingClientRect()
+        rect = el.value!.getBoundingClientRect()
       }
       const checkInView = () => {
         getRect()
@@ -75,13 +72,13 @@ export default (lazyManager:Lazy) => {
         lazyManager.lazyLoadHandler()
       })
       const load = (onFinish = noop) => {
-        if ((state.attempt > options.attempt - 1) && state.error) {
+        if ((state.attempt > options.attempt! - 1) && state.error) {
           if (!lazyManager.options.silent) console.log(`VueLazyload log: ${options.src} tried too more than ${options.attempt} times`)
           onFinish()
           return
         }
         const src = options.src
-        loadImageAsync({ src }, ({ src }) => {
+        loadImageAsync({ src }, ({ src = '' }) => {
           renderSrc.value = src
           state.loaded = true
         }, () => {
@@ -90,13 +87,14 @@ export default (lazyManager:Lazy) => {
           state.error = true
         })
       }
-    },
-    render() {
-      return h(this.tag, {
-        attrs: {
-          src: this.renderSrc
-        }
-      }, this.$slots.default)
-    },
+      return () => createVNode(
+        props.tag,
+        {
+          src: renderSrc.value,
+          ref: el
+        },
+        [ctx.slots.default?.()]
+      )
+    }
   })
 }

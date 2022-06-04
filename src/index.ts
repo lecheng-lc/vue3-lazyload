@@ -3,7 +3,7 @@ import LazyComponent from './lazy-component'
 import LazyContainer from './lazy-container'
 import LazyImage from './lazy-image'
 import LazyDom from './lazy-dom'
-import { VueLazyloadOptions } from './type'
+import { VueLazyloadOptions } from '../types/index'
 import { App } from 'vue'
 export default {
   /*
@@ -37,11 +37,11 @@ export default {
         unmounted: lazyContainer.unbind.bind(lazyContainer)
       })
       app.directive('view', {
-        beforeMount: (el,binding)=>{
+        mounted: (el,binding)=>{
           const haveFilterType = options.viewNodeNames && options.viewNodeNames.length
           const nodeName = el.nodeName
           const viewParams = binding.value
-          if(haveFilterType && options.viewNodeNames.includes(nodeName)) {
+          if(haveFilterType && options.viewNodeNames!.includes(nodeName)) {
             const lazyBox = el.domLazyBox = new lazyDom(el,viewParams)
             lazyBox.addLazyDom()
           } else if(!haveFilterType){
@@ -49,8 +49,6 @@ export default {
             lazyBox.addLazyDom()
           }
         },
-        // beforeUpdate: lazy.update.bind(lazy),
-        // updated: lazy.lazyLoadHandler.bind(lazy),
         unmounted: (el)=>{
           const lazyBox = el.domLazyBox || null
           if (lazyBox) {

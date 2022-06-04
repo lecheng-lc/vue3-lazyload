@@ -5,8 +5,7 @@ import {
 } from './util'
 
 
-import { VueLazyloadOptions } from './type'
-import { Tlistener } from './type'
+import { VueLazyloadOptions ,Tlistener} from '../types/index'
 export default class ReactiveListener {
   el: HTMLElement | null
   src: string
@@ -51,7 +50,7 @@ export default class ReactiveListener {
 
     this.options = options // lazyload的各种初始化选项
 
-    this.rect = {} as DOMRect // 当前元素距离屏幕顶部的上下左右距离
+    this.rect = <DOMRect>{} // 当前元素距离屏幕顶部的上下左右距离
     this.$parent = $parent // 当前元素父元素
     this.elRenderer = elRenderer // 元素渲染的方式
     this._imageCache = imageCache // 图像缓存数组

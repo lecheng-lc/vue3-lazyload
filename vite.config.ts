@@ -3,11 +3,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: 'src/index.ts',
-      formats: ['es','umd'],
+      formats: ["umd"],
       name: 'lazyload'
-    },
-    rollupOptions: {
-      external: /^lit/
     }
   }
 })

@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
     "module": "ESNext",
+    "target":"ES5",
     "lib": [
-      "ES2020",
+      "es7",
       "DOM",
       "DOM.Iterable"
     ],
-    "declaration": true,
-    "emitDeclarationOnly": true,
-    "outDir": "./types",
+    "emitDeclarationOnly": false,
+    "outDir": "../vue3/es",
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -25,8 +25,9 @@
     "typeRoots": ["./types"]
   },
   "include": [
-    "src/util.ts"
+    "src/"
   ],
+  "exclude": ["node_modules"],
   "references": [
     {
       "path": "./tsconfig.node.json"
