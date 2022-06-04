@@ -8,7 +8,7 @@
       "DOM.Iterable"
     ],
     "emitDeclarationOnly": false,
-    "outDir": "../vue3/es",
+    "outDir": "./es",
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
