@@ -9,7 +9,7 @@
 ### 新增参数
 
 | key | description| default | options|
-|-|-|-|
+|-|-|-|-|
 |viewNodeNames| 允许曝光的dom节点|[]| Array |
 
 ### 新增指令
